@@ -14,6 +14,9 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.WritableMap;
 
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -41,9 +44,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
+import android.util.Log;
+
 public class RNCustomCropModule extends ReactContextBaseJavaModule {
 
   private final ReactApplicationContext reactContext;
+  private final String TAG = ":(";
 
   public RNCustomCropModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -57,6 +63,22 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void crop(ReadableMap points, String imageUri, Callback callback) {
+      BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this.reactContext) {
+        @Override
+        public void onManagerConnected(int status) {
+          if (status == LoaderCallbackInterface.SUCCESS) {
+              Log.d(TAG, "SUCCESS init OpenCV: " + status);
+          } else {
+              Log.d(TAG, "ERROR init OpenCV: " + status);
+          }
+        }
+      };
+
+    if (!OpenCVLoader.initDebug()) {
+      OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_1_0, this.reactContext, mLoaderCallback);
+    } else {
+      mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+    }
 
     Point tl = new Point(points.getMap("topLeft").getDouble("x"), points.getMap("topLeft").getDouble("y"));
     Point tr = new Point(points.getMap("topRight").getDouble("x"), points.getMap("topRight").getDouble("y"));
