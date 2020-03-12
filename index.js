@@ -11,6 +11,11 @@ import Svg, { Polygon } from 'react-native-svg';
 
 const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
 
+const TOP = 0;
+const RIGHT = 1;
+const BOTTOM = 2;
+const LEFT = 3;
+
 class CustomCrop extends Component {
   state = {};
 
@@ -18,8 +23,15 @@ class CustomCrop extends Component {
     super(props);
 
     const corners = [];
-    for(let i = 0; i < 4; i++) {
-      corners[i] = {position: new Animated.ValueXY(), delta: {x: 0, y: 0}};
+    for (let i = 0; i < 4; i++) {
+      corners[i] = { position: new Animated.ValueXY(), delta: { x: 0, y: 0 } };
+      corners[i].panResponder = this.createPanResponser(corners[i]);
+    }
+
+    const midPoints = [];
+    for (let i = 0; i < 4; i++) {
+      midPoints[i] = { position: new Animated.ValueXY(), delta: { x: 0, y: 0 } };
+      midPoints[i].panResponder = this.createPanResponser(midPoints[i]);
     }
 
     this.state = {
@@ -27,28 +39,26 @@ class CustomCrop extends Component {
       imageHeight: props.height,
       image: props.initialImage,
       corners,
+      midPoints,
     };
     this.state = {
       ...this.state,
       overlayPositions: this.getOverlayString(),
     };
-
-    this.state.corners.forEach(corner => {
-      corner.panResponder = this.createPanResponser(corner);
-    })
   }
 
   createPanResponser(corner) {
     return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderMove: (e, gesture) => {
-        const { position, delta }  = corner;
+        const { position, delta } = corner;
         corner.position.setValue({
           x: Math.min(Math.max(position.x._value + gesture.dx - delta.x, 0), this.state.imageLayoutWidth),
           y: Math.min(Math.max(position.y._value + gesture.dy - delta.y, 0), this.state.imageLayoutHeight),
         });
         corner.delta = { x: gesture.dx, y: gesture.dy };
-        this.setState({ overlayPositions: this._getOverlayString() });
+        this.setState({ overlayPositions: this.getOverlayString() });
+        this.updateMidPoints();
       },
       onPanResponderRelease: () => {
         corner.delta = { x: 0, y: 0 };
@@ -60,7 +70,7 @@ class CustomCrop extends Component {
   }
 
   crop() {
-    const { topLeft, topRight, bottomLeft, bottomRight } = this.getPositions();
+    const { topLeft, topRight, bottomLeft, bottomRight } = this.getCorners();
     const coordinates = {
       topLeft: this.viewCoordinatesToImageCoordinates(topLeft),
       topRight: this.viewCoordinatesToImageCoordinates(topRight),
@@ -79,7 +89,7 @@ class CustomCrop extends Component {
     );
   }
 
-  getPositions() {
+  getCorners() {
     const { corners } = this.state;
 
     const topSorted = [...corners].sort((a, b) => a.position.y._value > b.position.y._value)
@@ -91,8 +101,21 @@ class CustomCrop extends Component {
     return { topLeft, topRight, bottomLeft, bottomRight };
   }
 
+  setMidPoint(point, start, end) {
+    point.position.setValue({ x: (start.x._value + end.x._value) / 2, y: (start.y._value + end.y._value) / 2 })
+  }
+
+  updateMidPoints() {
+    const { topLeft, topRight, bottomLeft, bottomRight } = this.getCorners();
+
+    this.setMidPoint(this.state.midPoints[TOP], topLeft, topRight);
+    this.setMidPoint(this.state.midPoints[RIGHT], bottomRight, topRight);
+    this.setMidPoint(this.state.midPoints[BOTTOM], bottomRight, bottomLeft);
+    this.setMidPoint(this.state.midPoints[LEFT], topLeft, bottomLeft);
+  }
+
   getOverlayString() {
-    const { topLeft, topRight, bottomLeft, bottomRight } = this.getPositions();
+    const { topLeft, topRight, bottomLeft, bottomRight } = this.getCorners();
 
     return `${topLeft.x._value},${topLeft.y._value} ${topRight.x._value},${topRight.y._value} ${
       bottomRight.x._value},${bottomRight.y._value} ${bottomLeft.x._value},${bottomLeft.y._value}`;
@@ -103,7 +126,7 @@ class CustomCrop extends Component {
   }
 
   viewCoordinatesToImageCoordinates(corner) {
-    const {zoom} = this.state;
+    const { zoom } = this.state;
     return {
       x: corner.x._value * (1 / zoom),
       y: corner.y._value * (1 / zoom),
@@ -133,10 +156,10 @@ class CustomCrop extends Component {
 
     const padding = 50;
     const { corners } = this.state;
-    corners[0].position.setValue({x: padding, y: padding});
-    corners[1].position.setValue({x: imageLayoutWidth - padding, y: padding});
-    corners[2].position.setValue({x: padding, y: imageLayoutHeight - padding});
-    corners[3].position.setValue({x: imageLayoutWidth - padding, y: imageLayoutHeight - padding});
+    corners[0].position.setValue({ x: padding, y: padding });
+    corners[1].position.setValue({ x: imageLayoutWidth - padding, y: padding });
+    corners[2].position.setValue({ x: padding, y: imageLayoutHeight - padding });
+    corners[3].position.setValue({ x: imageLayoutWidth - padding, y: imageLayoutHeight - padding });
 
     this.setState({
       viewWidth: layout.width,
@@ -151,7 +174,13 @@ class CustomCrop extends Component {
   }
 
   render() {
-    const { offsetVerticle, offsetHorizontal, corners, overlayPositions } = this.state;
+    const {
+      offsetVerticle,
+      offsetHorizontal,
+      corners,
+      midPoints,
+      overlayPositions,
+    } = this.state;
 
     return (
       <View style={{ flex: 1, width: '100%' }} onLayout={this.onLayout}>
@@ -181,6 +210,24 @@ class CustomCrop extends Component {
               strokeWidth={this.props.overlayStrokeWidth || 3}
             />
           </Svg>
+
+          {
+            midPoints.map(point => (
+              <Animated.View
+                {...point.panResponder.panHandlers}
+                style={[
+                  point.position.getLayout(),
+                  s(this.props).handler,
+                ]}
+              >
+                <View
+                  style={[
+                    s(this.props).handlerRound,
+                  ]}
+                />
+              </Animated.View>
+            ))
+          }
 
           {
             corners.map(corner => (
