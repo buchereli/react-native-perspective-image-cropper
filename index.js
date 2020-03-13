@@ -25,13 +25,13 @@ class CustomCrop extends Component {
     const corners = [];
     for (let i = 0; i < 4; i++) {
       corners[i] = { position: new Animated.ValueXY(), delta: { x: 0, y: 0 } };
-      corners[i].panResponder = this.createPanResponser(corners[i]);
+      corners[i].panResponder = this.cornerPanResponser(corners[i]);
     }
 
     const midPoints = [];
     for (let i = 0; i < 4; i++) {
       midPoints[i] = { position: new Animated.ValueXY(), delta: { x: 0, y: 0 } };
-      midPoints[i].panResponder = this.createPanResponser(midPoints[i]);
+      midPoints[i].panResponder = this.midPointPanResponser(midPoints[i], i);
     }
 
     this.state = {
@@ -47,18 +47,12 @@ class CustomCrop extends Component {
     };
   }
 
-  createPanResponser(corner) {
+  cornerPanResponser(corner) {
     return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderMove: (e, gesture) => {
-        const { position, delta } = corner;
-        corner.position.setValue({
-          x: Math.min(Math.max(position.x._value + gesture.dx - delta.x, 0), this.state.imageLayoutWidth),
-          y: Math.min(Math.max(position.y._value + gesture.dy - delta.y, 0), this.state.imageLayoutHeight),
-        });
-        corner.delta = { x: gesture.dx, y: gesture.dy };
+        this.moveCorner(corner, gesture.dx, gesture.dy);
         this.setState({ overlayPositions: this.getOverlayString() });
-        this.updateMidPoints();
       },
       onPanResponderRelease: () => {
         corner.delta = { x: 0, y: 0 };
@@ -66,6 +60,50 @@ class CustomCrop extends Component {
       onPanResponderGrant: () => {
         corner.delta = { x: 0, y: 0 };
       },
+    });
+  }
+
+  moveCorner(corner, dx, dy) {
+    const { delta, position } = corner;
+    position.setValue({
+      x: Math.min(Math.max(position.x._value + dx - delta.x, 0), this.state.imageLayoutWidth),
+      y: Math.min(Math.max(position.y._value + dy - delta.y, 0), this.state.imageLayoutHeight),
+    });
+    corner.delta = { x: dx, y: dy };
+    this.updateMidPoints();
+  }
+
+  midPointPanResponser(midPoint, side) {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (e, gesture) => {
+        const { topLeft, topRight, bottomLeft, bottomRight } = this.getCorners();
+        switch (side) {
+          case TOP:
+            this.moveCorner(topLeft, 0, gesture.dy);
+            this.moveCorner(topRight, 0, gesture.dy);
+            break;
+          case RIGHT:
+            this.moveCorner(bottomRight, gesture.dx, 0);
+            this.moveCorner(topRight, gesture.dx, 0);
+            break;
+          case BOTTOM:
+            this.moveCorner(bottomLeft, 0, gesture.dy);
+            this.moveCorner(bottomRight, 0, gesture.dy);
+            break;
+          case LEFT:
+            this.moveCorner(bottomLeft, gesture.dx, 0);
+            this.moveCorner(topLeft, gesture.dx, 0);
+            break;
+        }
+        this.setState({ overlayPositions: this.getOverlayString() });
+      },
+      onPanResponderRelease: () => {
+        this.state.corners.forEach(corner => {
+          corner.delta = { x: 0, y: 0 };
+        })
+      },
+      onPanResponderGrant: () => { },
     });
   }
 
@@ -93,16 +131,19 @@ class CustomCrop extends Component {
     const { corners } = this.state;
 
     const topSorted = [...corners].sort((a, b) => a.position.y._value > b.position.y._value)
-    const topLeft = topSorted[0].position.x._value < topSorted[1].position.x._value ? topSorted[0].position : topSorted[1].position;
-    const topRight = topSorted[0].position.x._value > topSorted[1].position.x._value ? topSorted[0].position : topSorted[1].position;
-    const bottomLeft = topSorted[2].position.x._value < topSorted[3].position.x._value ? topSorted[2].position : topSorted[3].position;
-    const bottomRight = topSorted[2].position.x._value > topSorted[3].position.x._value ? topSorted[2].position : topSorted[3].position;
+    const topLeft = topSorted[0].position.x._value < topSorted[1].position.x._value ? topSorted[0] : topSorted[1];
+    const topRight = topSorted[0].position.x._value >= topSorted[1].position.x._value ? topSorted[0] : topSorted[1];
+    const bottomLeft = topSorted[2].position.x._value < topSorted[3].position.x._value ? topSorted[2] : topSorted[3];
+    const bottomRight = topSorted[2].position.x._value >= topSorted[3].position.x._value ? topSorted[2] : topSorted[3];
 
     return { topLeft, topRight, bottomLeft, bottomRight };
   }
 
   setMidPoint(point, start, end) {
-    point.position.setValue({ x: (start.x._value + end.x._value) / 2, y: (start.y._value + end.y._value) / 2 })
+    point.position.setValue({
+      x: (start.position.x._value + end.position.x._value) / 2,
+      y: (start.position.y._value + end.position.y._value) / 2,
+    })
   }
 
   updateMidPoints() {
@@ -117,8 +158,10 @@ class CustomCrop extends Component {
   getOverlayString() {
     const { topLeft, topRight, bottomLeft, bottomRight } = this.getCorners();
 
-    return `${topLeft.x._value},${topLeft.y._value} ${topRight.x._value},${topRight.y._value} ${
-      bottomRight.x._value},${bottomRight.y._value} ${bottomLeft.x._value},${bottomLeft.y._value}`;
+    return `${topLeft.position.x._value},${topLeft.position.y._value} ${
+      topRight.position.x._value},${topRight.position.y._value} ${
+      bottomRight.position.x._value},${bottomRight.position.y._value} ${
+      bottomLeft.position.x._value},${bottomLeft.position.y._value}`;
   }
 
   offset(position) {
@@ -128,8 +171,8 @@ class CustomCrop extends Component {
   viewCoordinatesToImageCoordinates(corner) {
     const { zoom } = this.state;
     return {
-      x: corner.x._value * (1 / zoom),
-      y: corner.y._value * (1 / zoom),
+      x: corner.position.x._value * (1 / zoom),
+      y: corner.position.y._value * (1 / zoom),
     };
   }
 
@@ -160,6 +203,8 @@ class CustomCrop extends Component {
     corners[1].position.setValue({ x: imageLayoutWidth - padding, y: padding });
     corners[2].position.setValue({ x: padding, y: imageLayoutHeight - padding });
     corners[3].position.setValue({ x: imageLayoutWidth - padding, y: imageLayoutHeight - padding });
+
+    this.updateMidPoints();
 
     this.setState({
       viewWidth: layout.width,
@@ -269,6 +314,7 @@ const s = (props) => ({
     justifyContent: 'center',
     position: 'absolute',
     backgroundColor: 'transparent',
+    borderRadius: 50,
   },
 });
 
