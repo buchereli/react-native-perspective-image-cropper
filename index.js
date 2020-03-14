@@ -114,8 +114,8 @@ class CustomCrop extends Component {
       topRight: this.viewCoordinatesToImageCoordinates(topRight),
       bottomLeft: this.viewCoordinatesToImageCoordinates(bottomLeft),
       bottomRight: this.viewCoordinatesToImageCoordinates(bottomRight),
-      height: this.state.height,
-      width: this.state.width,
+      height: this.state.imageHeight,
+      width: this.state.imageWidth,
     };
 
     NativeModules.CustomCropManager.crop(
@@ -170,6 +170,7 @@ class CustomCrop extends Component {
 
   viewCoordinatesToImageCoordinates(corner) {
     const { zoom } = this.state;
+
     return {
       x: corner.position.x._value * (1 / zoom),
       y: corner.position.y._value * (1 / zoom),

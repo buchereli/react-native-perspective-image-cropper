@@ -63,16 +63,16 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void crop(ReadableMap points, String imageUri, Callback callback) {
-      BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this.reactContext) {
-        @Override
-        public void onManagerConnected(int status) {
-          if (status == LoaderCallbackInterface.SUCCESS) {
-              Log.d(TAG, "SUCCESS init OpenCV: " + status);
-          } else {
-              Log.d(TAG, "ERROR init OpenCV: " + status);
-          }
+    BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this.reactContext) {
+      @Override
+      public void onManagerConnected(int status) {
+        if (status == LoaderCallbackInterface.SUCCESS) {
+            Log.d(TAG, "SUCCESS init OpenCV: " + status);
+        } else {
+            Log.d(TAG, "ERROR init OpenCV: " + status);
         }
-      };
+      }
+    };
 
     if (!OpenCVLoader.initDebug()) {
       OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_1_0, this.reactContext, mLoaderCallback);
@@ -88,7 +88,7 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
     Mat src = Imgcodecs.imread(imageUri.replace("file://", ""), Imgproc.COLOR_BGR2RGB);
     Imgproc.cvtColor(src, src, Imgproc.COLOR_BGR2RGB);
 
-    boolean ratioAlreadyApplied = tr.x * (src.size().width / 500) < src.size().width;
+    boolean ratioAlreadyApplied = false; //tr.x * (src.size().width / 500) < src.size().width;
     double ratio = ratioAlreadyApplied ? src.size().width / 500 : 1;
 
     double widthA = Math.sqrt(Math.pow(br.x - bl.x, 2) + Math.pow(br.y - bl.y, 2));
