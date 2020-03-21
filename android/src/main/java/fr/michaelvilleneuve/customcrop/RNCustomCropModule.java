@@ -88,33 +88,32 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
     Mat src = Imgcodecs.imread(imageUri.replace("file://", ""));
     Imgproc.cvtColor(src, src, Imgproc.COLOR_BGR2RGB);
 
-    boolean ratioAlreadyApplied = false; //tr.x * (src.size().width / 500) < src.size().width;
-    double ratio = ratioAlreadyApplied ? src.size().width / 500 : 1;
+    System.out.println("EASYEXPENSE - Source: " + src.size().width + " - " + src.size().height);
 
-    double widthA = Math.sqrt(Math.pow(br.x - bl.x, 2) + Math.pow(br.y - bl.y, 2));
-    double widthB = Math.sqrt(Math.pow(tr.x - tl.x, 2) + Math.pow(tr.y - tl.y, 2));
+    double bottom = Math.sqrt(Math.pow(br.x - bl.x, 2) + Math.pow(br.y - bl.y, 2));
+    double top = Math.sqrt(Math.pow(tr.x - tl.x, 2) + Math.pow(tr.y - tl.y, 2));
 
-    double dw = Math.max(widthA, widthB) * ratio;
-    int maxWidth = Double.valueOf(dw).intValue();
+    System.out.println("EASYEXPENSE - Width: " + bottom + " - " + top);
+    double maxWidth = Math.max(bottom, top);
 
-    double heightA = Math.sqrt(Math.pow(tr.x - br.x, 2) + Math.pow(tr.y - br.y, 2));
-    double heightB = Math.sqrt(Math.pow(tl.x - bl.x, 2) + Math.pow(tl.y - bl.y, 2));
+    double right = Math.sqrt(Math.pow(tr.x - br.x, 2) + Math.pow(tr.y - br.y, 2));
+    double left = Math.sqrt(Math.pow(tl.x - bl.x, 2) + Math.pow(tl.y - bl.y, 2));
 
-    double dh = Math.max(heightA, heightB) * ratio;
-    int maxHeight = Double.valueOf(dh).intValue();
+    System.out.println("EASYEXPENSE - Hieght: " + left + " - " + right);
+    double maxHeight = Math.max(right, left);
 
-    Mat doc = new Mat(maxHeight, maxWidth, CvType.CV_8UC4);
+    Mat doc = new Mat((int)maxHeight, (int)maxWidth, CvType.CV_8UC4);
 
-    Mat src_mat = new Mat(4, 1, CvType.CV_32FC2);
-    Mat dst_mat = new Mat(4, 1, CvType.CV_32FC2);
+    MatOfPoint2f startMat = new MatOfPoint2f(tl, tr, bl, br);
+    MatOfPoint2f endMat = new MatOfPoint2f(
+        new Point(0, 0),
+        new Point((int)maxWidth,0),
+        new Point(0,(int)maxHeight),
+        new Point((int)maxWidth,(int)maxHeight)
+    );
 
-    src_mat.put(0, 0, tl.x * ratio, tl.y * ratio, tr.x * ratio, tr.y * ratio, br.x * ratio, br.y * ratio, bl.x * ratio,
-        bl.y * ratio);
-    dst_mat.put(0, 0, 0.0, 0.0, dw, 0.0, dw, dh, 0.0, dh);
-
-    Mat m = Imgproc.getPerspectiveTransform(src_mat, dst_mat);
-
-    Imgproc.warpPerspective(src, doc, m, doc.size());
+    Mat warpMat = Imgproc.getPerspectiveTransform(startMat, endMat);
+    Imgproc.warpPerspective(src, doc, warpMat, doc.size());
 
     Bitmap bitmap = Bitmap.createBitmap(doc.cols(), doc.rows(), Bitmap.Config.ARGB_8888);
     Utils.matToBitmap(doc, bitmap);
@@ -127,7 +126,7 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
     map.putString("image", Base64.encodeToString(byteArray, Base64.DEFAULT));
     callback.invoke(null, map);
 
-    m.release();
+    warpMat.release();
   }
 
 }
