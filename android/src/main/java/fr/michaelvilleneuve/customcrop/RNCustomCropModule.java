@@ -1,5 +1,6 @@
-
 package fr.michaelvilleneuve.customcrop;
+
+import fr.michaelvilleneuve.customcrop.ImageProcessor;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -67,9 +68,9 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
       @Override
       public void onManagerConnected(int status) {
         if (status == LoaderCallbackInterface.SUCCESS) {
-            Log.d(TAG, "SUCCESS init OpenCV: " + status);
+          Log.d(TAG, "SUCCESS init OpenCV: " + status);
         } else {
-            Log.d(TAG, "ERROR init OpenCV: " + status);
+          Log.d(TAG, "ERROR init OpenCV: " + status);
         }
       }
     };
@@ -102,15 +103,11 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
     System.out.println("EASYEXPENSE - Hieght: " + left + " - " + right);
     double maxHeight = Math.max(right, left);
 
-    Mat doc = new Mat((int)maxHeight, (int)maxWidth, CvType.CV_8UC4);
+    Mat doc = new Mat((int) maxHeight, (int) maxWidth, CvType.CV_8UC4);
 
     MatOfPoint2f startMat = new MatOfPoint2f(tl, tr, bl, br);
-    MatOfPoint2f endMat = new MatOfPoint2f(
-        new Point(0, 0),
-        new Point((int)maxWidth,0),
-        new Point(0,(int)maxHeight),
-        new Point((int)maxWidth,(int)maxHeight)
-    );
+    MatOfPoint2f endMat = new MatOfPoint2f(new Point(0, 0), new Point((int) maxWidth, 0), new Point(0, (int) maxHeight),
+        new Point((int) maxWidth, (int) maxHeight));
 
     Mat warpMat = Imgproc.getPerspectiveTransform(startMat, endMat);
     Imgproc.warpPerspective(src, doc, warpMat, doc.size());
@@ -127,6 +124,40 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
     callback.invoke(null, map);
 
     warpMat.release();
+  }
+
+  @ReactMethod
+  public void findDocument(String imageUri, Callback callback) {
+    BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this.reactContext) {
+      @Override
+      public void onManagerConnected(int status) {
+        if (status == LoaderCallbackInterface.SUCCESS) {
+          Log.d(TAG, "SUCCESS init OpenCV: " + status);
+        } else {
+          Log.d(TAG, "ERROR init OpenCV: " + status);
+        }
+      }
+    };
+
+    if (!OpenCVLoader.initDebug()) {
+      OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_1_0, this.reactContext, mLoaderCallback);
+    } else {
+      mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+    }
+
+    System.out.println("l33t uri - " + imageUri);
+    if (!imageUri.isEmpty()) {
+      Mat src = Imgcodecs.imread(imageUri.replace("file://", ""));
+      Imgproc.cvtColor(src, src, Imgproc.COLOR_BGR2RGB);
+
+      System.out.println("l33t - Source: " + src.size().width + " - " + src.size().height);
+
+      ImageProcessor ip = new ImageProcessor();
+
+      // WritableMap map = Arguments.createMap();
+      // map.putString("crop", ip.processPicture(src));
+      callback.invoke(null, ip.processPicture(src));
+    }
   }
 
 }
