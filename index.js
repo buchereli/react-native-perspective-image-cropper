@@ -6,6 +6,7 @@ import {
   Image,
   View,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 
@@ -40,10 +41,7 @@ class CustomCrop extends Component {
       image: props.initialImage,
       corners,
       midPoints,
-    };
-    this.state = {
-      ...this.state,
-      overlayPositions: this.getOverlayString(),
+      loading: true,
     };
   }
 
@@ -108,21 +106,41 @@ class CustomCrop extends Component {
   }
 
   crop() {
-    const { topLeft, topRight, bottomLeft, bottomRight } = this.getCorners();
-    const coordinates = {
-      topLeft: this.viewCoordinatesToImageCoordinates(topLeft),
-      topRight: this.viewCoordinatesToImageCoordinates(topRight),
-      bottomLeft: this.viewCoordinatesToImageCoordinates(bottomLeft),
-      bottomRight: this.viewCoordinatesToImageCoordinates(bottomRight),
-      height: this.state.imageHeight,
-      width: this.state.imageWidth,
-    };
+    if (!this.state.loading) {
+      const { topLeft, topRight, bottomLeft, bottomRight } = this.getCorners();
+      const coordinates = {
+        topLeft: this.viewCoordinatesToImageCoordinates(topLeft),
+        topRight: this.viewCoordinatesToImageCoordinates(topRight),
+        bottomLeft: this.viewCoordinatesToImageCoordinates(bottomLeft),
+        bottomRight: this.viewCoordinatesToImageCoordinates(bottomRight),
+        height: this.state.imageHeight,
+        width: this.state.imageWidth,
+      };
 
-    NativeModules.CustomCropManager.crop(
-      coordinates,
+      NativeModules.CustomCropManager.crop(
+        coordinates,
+        this.state.image,
+        (err, res) => {
+          this.props.updateImage(res.image, coordinates)
+        },
+      );
+    }
+  }
+
+  findDocument() {
+    console.log(this.state.image);
+    NativeModules.CustomCropManager.findDocument(
       this.state.image,
       (err, res) => {
-        this.props.updateImage(res.image, coordinates)
+        const { corners, zoom } = this.state;
+        if (res) {
+          corners[2].position.setValue({ x: res.topLeft.x * zoom, y: res.topLeft.y * zoom });
+          corners[1].position.setValue({ x: res.topRight.x * zoom, y: res.topRight.y * zoom });
+          corners[0].position.setValue({ x: res.bottomLeft.x * zoom, y: res.bottomLeft.y * zoom });
+          corners[3].position.setValue({ x: res.bottomRight.x * zoom, y: res.bottomRight.y * zoom });
+          this.updateMidPoints();
+        }
+        this.setState({ loading: false, overlayPositions: this.getOverlayString() });
       },
     );
   }
@@ -207,6 +225,8 @@ class CustomCrop extends Component {
 
     this.updateMidPoints();
 
+    this.findDocument();
+
     this.setState({
       viewWidth: layout.width,
       viewHeight: layout.height,
@@ -214,7 +234,6 @@ class CustomCrop extends Component {
       imageLayoutHeight,
       offsetVerticle,
       offsetHorizontal,
-      overlayPositions: this.getOverlayString(),
       zoom,
     });
   }
@@ -226,6 +245,7 @@ class CustomCrop extends Component {
       corners,
       midPoints,
       overlayPositions,
+      loading,
     } = this.state;
 
     return (
@@ -235,64 +255,71 @@ class CustomCrop extends Component {
           resizeMode="contain"
           source={{ uri: this.state.image }}
         />
-        <View style={{
-          position: 'absolute',
-          top: offsetVerticle,
-          bottom: offsetVerticle,
-          left: offsetHorizontal,
-          right: offsetHorizontal,
-        }}>
-          <Svg
-            height={this.state.viewHeight}
-            width={Dimensions.get('window').width}
-            style={{ position: 'absolute', left: 0, top: 0 }}
-          >
-            <AnimatedPolygon
-              ref={(ref) => (this.polygon = ref)}
-              fill={this.props.overlayColor || 'blue'}
-              fillOpacity={this.props.overlayOpacity || 0.5}
-              stroke={this.props.overlayStrokeColor || 'blue'}
-              points={overlayPositions}
-              strokeWidth={this.props.overlayStrokeWidth || 3}
-            />
-          </Svg>
+        {loading && (
+          <View style={{ position: "absolute", justifyContent: "center", alignItems: "center", width: "100%", height: "100%" }}>
+            <ActivityIndicator color={this.props.overlayColor} size="large" />
+          </View>
+        )}
+        {!loading && (
+          <View style={{
+            position: 'absolute',
+            top: offsetVerticle,
+            bottom: offsetVerticle,
+            left: offsetHorizontal,
+            right: offsetHorizontal,
+          }}>
+            <Svg
+              height={this.state.viewHeight}
+              width={Dimensions.get('window').width}
+              style={{ position: 'absolute', left: 0, top: 0 }}
+            >
+              <AnimatedPolygon
+                ref={(ref) => (this.polygon = ref)}
+                fill={this.props.overlayColor || 'blue'}
+                fillOpacity={this.props.overlayOpacity || 0.5}
+                stroke={this.props.overlayStrokeColor || 'blue'}
+                points={overlayPositions}
+                strokeWidth={this.props.overlayStrokeWidth || 3}
+              />
+            </Svg>
 
-          {
-            midPoints.map(point => (
-              <Animated.View
-                {...point.panResponder.panHandlers}
-                style={[
-                  point.position.getLayout(),
-                  s(this.props).handler,
-                ]}
-              >
-                <View
+            {
+              midPoints.map(point => (
+                <Animated.View
+                  {...point.panResponder.panHandlers}
                   style={[
-                    s(this.props).handlerRound,
+                    point.position.getLayout(),
+                    s(this.props).handler,
                   ]}
-                />
-              </Animated.View>
-            ))
-          }
+                >
+                  <View
+                    style={[
+                      s(this.props).handlerRound,
+                    ]}
+                  />
+                </Animated.View>
+              ))
+            }
 
-          {
-            corners.map(corner => (
-              <Animated.View
-                {...corner.panResponder.panHandlers}
-                style={[
-                  corner.position.getLayout(),
-                  s(this.props).handler,
-                ]}
-              >
-                <View
+            {
+              corners.map(corner => (
+                <Animated.View
+                  {...corner.panResponder.panHandlers}
                   style={[
-                    s(this.props).handlerRound,
+                    corner.position.getLayout(),
+                    s(this.props).handler,
                   ]}
-                />
-              </Animated.View>
-            ))
-          }
-        </View>
+                >
+                  <View
+                    style={[
+                      s(this.props).handlerRound,
+                    ]}
+                  />
+                </Animated.View>
+              ))
+            }
+          </View>
+        )}
       </View>
     );
   }
