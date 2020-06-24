@@ -1,5 +1,4 @@
 #import "CustomCropManager.h"
-#import "RectangleDetectionController.h"
 #import <React/RCTLog.h>
 
 @implementation CustomCropManager
@@ -58,10 +57,6 @@ RCT_EXPORT_METHOD(findDocument:(NSString *)imageUri callback:(RCTResponseSenderB
     NSString *parsedImageUri = [imageUri stringByReplacingOccurrencesOfString:@"file://" withString:@""];
     NSURL *fileURL = [NSURL fileURLWithPath:parsedImageUri];
     CIImage *detectionImage = [CIImage imageWithContentsOfURL:fileURL];
-    // need to convert the CI image to a CG image before use, otherwise there can be some unexpected behaviour on some devices
-    // CIContext *context = [CIContext contextWithOptions:nil];
-    // CGImageRef cgDetectionImage = [context createCGImage:image fromRect:image.extent];
-    // CIImage *detectionImage = [CIImage imageWithCGImage:cgDetectionImage];
     detectionImage = [detectionImage imageByApplyingOrientation:kCGImagePropertyOrientationLeft];
 
     self->_borderDetectLastRectangleFeature = [self biggestRectangleInRectangles:[[self highAccuracyRectangleDetector] featuresInImage:detectionImage] image:detectionImage];
@@ -73,17 +68,6 @@ RCT_EXPORT_METHOD(findDocument:(NSString *)imageUri callback:(RCTResponseSenderB
     } else {
         callback(@[@{@"error": @"No rectangle found"}, [NSNull null]]);
     }
-
-//        [self rectangleWasDetected:@{
-//        @"detectedRectangle": rectangleCoordinates,
-//        }];
-//    } else {
-//        [self rectangleWasDetected:@{
-//        @"detectedRectangle": @FALSE,
-//        }];
-//    }
-
-//    CGImageRelease(cgDetectionImage);
 }
 
 
