@@ -126,22 +126,22 @@ RCT_EXPORT_METHOD(findDocument:(NSString *)imageUri callback:(RCTResponseSenderB
   if (!rectangle) return nil;
   return @{
     @"bottomLeft": @{
-        @"y": @(rectangle.topLeft.x),
-        @"x": @(rectangle.topLeft.y)
+        @"y": @(rectangle.topLeft.y),
+        @"x": @(imageBounds.size.width-rectangle.topLeft.x)
     },
     @"bottomRight": @{
-        @"y": @(rectangle.topRight.x),
-        @"x": @(rectangle.topRight.y)
+        @"y": @(rectangle.topRight.y),
+        @"x": @(imageBounds.size.width-rectangle.topRight.x)
     },
     @"topLeft": @{
-        @"y": @(rectangle.bottomLeft.x),
-        @"x": @(rectangle.bottomLeft.y)
+        @"y": @(rectangle.bottomLeft.y),
+        @"x": @(imageBounds.size.width-rectangle.bottomLeft.x)
     },
     @"topRight": @{
-        @"y": @(rectangle.bottomRight.x),
-        @"x": @(rectangle.bottomRight.y)
+        @"y": @(rectangle.bottomRight.y),
+        @"x": @(imageBounds.size.width-rectangle.bottomRight.x)
     },
-    @"dimensions": @{@"height": @(imageBounds.size.width), @"width": @(imageBounds.size.height)}
+    @"dimensions": @{@"width": @(imageBounds.size.width), @"height": @(imageBounds.size.height)}
   };
 }
 
