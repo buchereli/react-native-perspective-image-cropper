@@ -23,12 +23,10 @@ RCT_EXPORT_METHOD(crop:(NSDictionary *)points imageUri:(NSString *)imageUri call
     CGPoint newBottomLeft = CGPointMake([points[@"bottomLeft"][@"x"] floatValue], [points[@"bottomLeft"][@"y"] floatValue]);
     CGPoint newBottomRight = CGPointMake([points[@"bottomRight"][@"x"] floatValue], [points[@"bottomRight"][@"y"] floatValue]);
     
-    newLeft = [self cartesianForPoint:newLeft height:[points[@"height"] floatValue] ];
-    newRight = [self cartesianForPoint:newRight height:[points[@"height"] floatValue] ];
-    newBottomLeft = [self cartesianForPoint:newBottomLeft height:[points[@"height"] floatValue] ];
-    newBottomRight = [self cartesianForPoint:newBottomRight height:[points[@"height"] floatValue] ];
-    
-    
+    newLeft = [self cartesianForPoint:newLeft height:[points[@"height"] floatValue] width:[points[@"width"] floatValue] ];
+    newRight = [self cartesianForPoint:newRight height:[points[@"height"] floatValue] width:[points[@"width"] floatValue] ];
+    newBottomLeft = [self cartesianForPoint:newBottomLeft height:[points[@"height"] floatValue] width:[points[@"width"] floatValue] ];
+    newBottomRight = [self cartesianForPoint:newBottomRight height:[points[@"height"] floatValue] width:[points[@"width"] floatValue] ];
     
     NSMutableDictionary *rectangleCoordinates = [[NSMutableDictionary alloc] init];
     
@@ -47,8 +45,8 @@ RCT_EXPORT_METHOD(crop:(NSDictionary *)points imageUri:(NSString *)imageUri call
     callback(@[[NSNull null], @{@"image": [imageToEncode base64EncodedStringWithOptions:NSDataBase64Encoding64CharacterLineLength]}]);
 }
 
-- (CGPoint)cartesianForPoint:(CGPoint)point height:(float)height {
-    return CGPointMake(point.x, height - point.y);
+- (CGPoint)cartesianForPoint:(CGPoint)point height:(float)height width:(float)width {
+    return CGPointMake(point.y, point.x);
 }
 
 
@@ -64,7 +62,7 @@ RCT_EXPORT_METHOD(findDocument:(NSString *)imageUri callback:(RCTResponseSenderB
 
     if (self->_borderDetectLastRectangleFeature) {
         NSDictionary *rectangleCoordinates = [self computeRectangle:self->_borderDetectLastRectangleFeature forImage: detectionImage];
-        callback(@[[NSNull null], @{@"coordinates": rectangleCoordinates}]);
+        callback(@[[NSNull null], rectangleCoordinates]);
     } else {
         callback(@[@{@"error": @"No rectangle found"}, [NSNull null]]);
     }
@@ -125,19 +123,19 @@ RCT_EXPORT_METHOD(findDocument:(NSString *)imageUri callback:(RCTResponseSenderB
   CGRect imageBounds = image.extent;
   if (!rectangle) return nil;
   return @{
-    @"bottomLeft": @{
+    @"topLeft": @{
         @"y": @(rectangle.topLeft.y),
         @"x": @(imageBounds.size.width-rectangle.topLeft.x)
     },
-    @"bottomRight": @{
+    @"topRight": @{
         @"y": @(rectangle.topRight.y),
         @"x": @(imageBounds.size.width-rectangle.topRight.x)
     },
-    @"topLeft": @{
+    @"bottomLeft": @{
         @"y": @(rectangle.bottomLeft.y),
         @"x": @(imageBounds.size.width-rectangle.bottomLeft.x)
     },
-    @"topRight": @{
+    @"bottomRight": @{
         @"y": @(rectangle.bottomRight.y),
         @"x": @(imageBounds.size.width-rectangle.bottomRight.x)
     },
