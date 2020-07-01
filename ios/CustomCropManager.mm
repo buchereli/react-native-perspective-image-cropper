@@ -13,8 +13,8 @@
 RCT_EXPORT_MODULE();
 
 RCT_EXPORT_METHOD(crop:(NSDictionary *)points imageUri:(NSString *)imageUri callback:(RCTResponseSenderBlock)callback)
-{
-    NSString *parsedImageUri = [imageUri stringByReplacingOccurrencesOfString:@"file://" withString:@""];
+{    
+    NSString *parsedImageUri = [[imageUri stringByReplacingOccurrencesOfString:@"file://" withString:@""] stringByRemovingPercentEncoding];
     NSURL *fileURL = [NSURL fileURLWithPath:parsedImageUri];
     CIImage *ciImage = [CIImage imageWithContentsOfURL:fileURL];
     
