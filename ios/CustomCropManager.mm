@@ -13,20 +13,16 @@
 RCT_EXPORT_MODULE();
 
 RCT_EXPORT_METHOD(crop:(NSDictionary *)points imageUri:(NSString *)imageUri callback:(RCTResponseSenderBlock)callback)
-{    
+{
     NSString *parsedImageUri = [[imageUri stringByReplacingOccurrencesOfString:@"file://" withString:@""] stringByRemovingPercentEncoding];
     NSURL *fileURL = [NSURL fileURLWithPath:parsedImageUri];
     CIImage *ciImage = [CIImage imageWithContentsOfURL:fileURL];
+    ciImage = [ciImage imageByApplyingOrientation:kCGImagePropertyOrientationDownMirrored];
     
     CGPoint newLeft = CGPointMake([points[@"topLeft"][@"x"] floatValue], [points[@"topLeft"][@"y"] floatValue]);
     CGPoint newRight = CGPointMake([points[@"topRight"][@"x"] floatValue], [points[@"topRight"][@"y"] floatValue]);
     CGPoint newBottomLeft = CGPointMake([points[@"bottomLeft"][@"x"] floatValue], [points[@"bottomLeft"][@"y"] floatValue]);
     CGPoint newBottomRight = CGPointMake([points[@"bottomRight"][@"x"] floatValue], [points[@"bottomRight"][@"y"] floatValue]);
-    
-    newLeft = [self cartesianForPoint:newLeft height:[points[@"height"] floatValue] width:[points[@"width"] floatValue] ];
-    newRight = [self cartesianForPoint:newRight height:[points[@"height"] floatValue] width:[points[@"width"] floatValue] ];
-    newBottomLeft = [self cartesianForPoint:newBottomLeft height:[points[@"height"] floatValue] width:[points[@"width"] floatValue] ];
-    newBottomRight = [self cartesianForPoint:newBottomRight height:[points[@"height"] floatValue] width:[points[@"width"] floatValue] ];
     
     NSMutableDictionary *rectangleCoordinates = [[NSMutableDictionary alloc] init];
     
@@ -40,13 +36,12 @@ RCT_EXPORT_METHOD(crop:(NSDictionary *)points imageUri:(NSString *)imageUri call
     CIContext *context = [CIContext contextWithOptions:nil];
     CGImageRef cgimage = [context createCGImage:ciImage fromRect:[ciImage extent]];
     UIImage *image = [UIImage imageWithCGImage:cgimage];
-    
     NSData *imageToEncode = UIImageJPEGRepresentation(image, 0.8);
     callback(@[[NSNull null], @{@"image": [imageToEncode base64EncodedStringWithOptions:NSDataBase64Encoding64CharacterLineLength]}]);
 }
 
-- (CGPoint)cartesianForPoint:(CGPoint)point height:(float)height width:(float)width {
-    return CGPointMake(point.y, point.x);
+- (CGPoint)cartesianForPoint:(CGPoint)point {
+    return CGPointMake(point.x, point.y);
 }
 
 
@@ -55,14 +50,14 @@ RCT_EXPORT_METHOD(findDocument:(NSString *)imageUri callback:(RCTResponseSenderB
     NSString *parsedImageUri = [imageUri stringByReplacingOccurrencesOfString:@"file://" withString:@""];
     NSURL *fileURL = [NSURL fileURLWithPath:parsedImageUri];
     CIImage *detectionImage = [CIImage imageWithContentsOfURL:fileURL];
-    detectionImage = [detectionImage imageByApplyingOrientation:kCGImagePropertyOrientationLeft];
+    detectionImage = [detectionImage imageByApplyingOrientation:kCGImagePropertyOrientationUp];
 
     self->_borderDetectLastRectangleFeature = [self biggestRectangleInRectangles:[[self highAccuracyRectangleDetector] featuresInImage:detectionImage] image:detectionImage];
     self->_borderDetectLastRectangleBounds = detectionImage.extent;
 
     if (self->_borderDetectLastRectangleFeature) {
-        NSDictionary *rectangleCoordinates = [self computeRectangle:self->_borderDetectLastRectangleFeature forImage: detectionImage];
-        callback(@[[NSNull null], rectangleCoordinates]);
+      NSDictionary *rectangleCoordinates = [self computeRectangle:self->_borderDetectLastRectangleFeature forImage: detectionImage];
+    callback(@[[NSNull null], rectangleCoordinates]);
     } else {
         callback(@[@{@"error": @"No rectangle found"}, [NSNull null]]);
     }
@@ -123,23 +118,23 @@ RCT_EXPORT_METHOD(findDocument:(NSString *)imageUri callback:(RCTResponseSenderB
   CGRect imageBounds = image.extent;
   if (!rectangle) return nil;
   return @{
-    @"topLeft": @{
-        @"y": @(rectangle.topLeft.y),
-        @"x": @(imageBounds.size.width-rectangle.topLeft.x)
-    },
-    @"topRight": @{
-        @"y": @(rectangle.topRight.y),
-        @"x": @(imageBounds.size.width-rectangle.topRight.x)
-    },
     @"bottomLeft": @{
-        @"y": @(rectangle.bottomLeft.y),
-        @"x": @(imageBounds.size.width-rectangle.bottomLeft.x)
+        @"y": @(imageBounds.size.height-rectangle.topRight.y),
+        @"x": @(rectangle.topRight.x)
     },
     @"bottomRight": @{
-        @"y": @(rectangle.bottomRight.y),
-        @"x": @(imageBounds.size.width-rectangle.bottomRight.x)
+        @"y": @(imageBounds.size.height-rectangle.topLeft.y),
+        @"x": @(rectangle.topLeft.x)
     },
-    @"dimensions": @{@"width": @(imageBounds.size.width), @"height": @(imageBounds.size.height)}
+    @"topLeft": @{
+        @"y": @(imageBounds.size.height-rectangle.bottomRight.y),
+        @"x": @(rectangle.bottomRight.x)
+    },
+    @"topRight": @{
+        @"y": @(imageBounds.size.height-rectangle.bottomLeft.y),
+        @"x": @(rectangle.bottomLeft.x)
+    },
+    @"dimensions": @{@"height": @(imageBounds.size.height), @"width": @(imageBounds.size.width)}
   };
 }
 
