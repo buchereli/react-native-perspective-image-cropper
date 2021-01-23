@@ -128,7 +128,6 @@ class CustomCrop extends Component {
   }
 
   findDocument() {
-    console.log(this.state.image);
     NativeModules.CustomCropManager.findDocument(
       this.state.image,
       (err, res) => {
