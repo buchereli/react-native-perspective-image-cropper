@@ -225,7 +225,7 @@ class CustomCrop extends Component {
 
     this.updateMidPoints();
 
-    this.findDocument();
+    this.props.findDocumentOnLoad && this.findDocument();
 
     this.setState({
       viewWidth: layout.width,
