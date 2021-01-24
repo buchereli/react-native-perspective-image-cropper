@@ -14,6 +14,7 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.NoSuchKeyException;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.OpenCVLoader;
@@ -80,34 +81,47 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
     } else {
       mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
     }
-
-    Point tl = new Point(points.getMap("topLeft").getDouble("x"), points.getMap("topLeft").getDouble("y"));
-    Point tr = new Point(points.getMap("topRight").getDouble("x"), points.getMap("topRight").getDouble("y"));
-    Point bl = new Point(points.getMap("bottomLeft").getDouble("x"), points.getMap("bottomLeft").getDouble("y"));
-    Point br = new Point(points.getMap("bottomRight").getDouble("x"), points.getMap("bottomRight").getDouble("y"));
-
     Mat src = Imgcodecs.imread(imageUri.replace("file://", ""));
-    Imgproc.cvtColor(src, src, Imgproc.COLOR_BGR2RGB);
+      Imgproc.cvtColor(src, src, Imgproc.COLOR_BGR2RGB);
 
-    System.out.println("EASYEXPENSE - Source: " + src.size().width + " - " + src.size().height);
+      System.out.println("EASYEXPENSE - Source: " + src.size().width + " - " + src.size().height);
 
-    double bottom = Math.sqrt(Math.pow(br.x - bl.x, 2) + Math.pow(br.y - bl.y, 2));
-    double top = Math.sqrt(Math.pow(tr.x - tl.x, 2) + Math.pow(tr.y - tl.y, 2));
+    MatOfPoint2f startMat;
+    MatOfPoint2f endMat;
+    Mat doc;
+    WritableMap map = Arguments.createMap();
+    try {
+      Point tl = new Point(points.getMap("topLeft").getDouble("x"), points.getMap("topLeft").getDouble("y"));
+      Point tr = new Point(points.getMap("topRight").getDouble("x"), points.getMap("topRight").getDouble("y"));
+      Point bl = new Point(points.getMap("bottomLeft").getDouble("x"), points.getMap("bottomLeft").getDouble("y"));
+      Point br = new Point(points.getMap("bottomRight").getDouble("x"), points.getMap("bottomRight").getDouble("y"));
 
-    System.out.println("EASYEXPENSE - Width: " + bottom + " - " + top);
-    double maxWidth = Math.max(bottom, top);
+      double bottom = Math.sqrt(Math.pow(br.x - bl.x, 2) + Math.pow(br.y - bl.y, 2));
+      double top = Math.sqrt(Math.pow(tr.x - tl.x, 2) + Math.pow(tr.y - tl.y, 2));
 
-    double right = Math.sqrt(Math.pow(tr.x - br.x, 2) + Math.pow(tr.y - br.y, 2));
-    double left = Math.sqrt(Math.pow(tl.x - bl.x, 2) + Math.pow(tl.y - bl.y, 2));
+      System.out.println("EASYEXPENSE - Width: " + bottom + " - " + top);
+      double maxWidth = Math.max(bottom, top);
 
-    System.out.println("EASYEXPENSE - Hieght: " + left + " - " + right);
-    double maxHeight = Math.max(right, left);
+      double right = Math.sqrt(Math.pow(tr.x - br.x, 2) + Math.pow(tr.y - br.y, 2));
+      double left = Math.sqrt(Math.pow(tl.x - bl.x, 2) + Math.pow(tl.y - bl.y, 2));
 
-    Mat doc = new Mat((int) maxHeight, (int) maxWidth, CvType.CV_8UC4);
+      System.out.println("EASYEXPENSE - Hieght: " + left + " - " + right);
+      double maxHeight = Math.max(right, left);
 
-    MatOfPoint2f startMat = new MatOfPoint2f(tl, tr, bl, br);
-    MatOfPoint2f endMat = new MatOfPoint2f(new Point(0, 0), new Point((int) maxWidth, 0), new Point(0, (int) maxHeight),
-        new Point((int) maxWidth, (int) maxHeight));
+      doc = new Mat((int) maxHeight, (int) maxWidth, CvType.CV_8UC4);
+      
+      startMat = new MatOfPoint2f(tl, tr, bl, br);
+      endMat = new MatOfPoint2f(new Point(0, 0), new Point((int) maxWidth, 0), new Point(0, (int) maxHeight),
+      new Point((int) maxWidth, (int) maxHeight));
+    }
+    catch (NoSuchKeyException e) {
+      doc = new Mat((int) src.size().height, (int) src.size().width, CvType.CV_8UC4);
+      startMat = new MatOfPoint2f(new Point(0, 0), new Point((int) src.size().width, 0), new Point(0, (int) src.size().height),
+          new Point((int) src.size().width, (int) src.size().height));
+      endMat = new MatOfPoint2f(new Point(0, 0), new Point((int) src.size().width, 0), new Point(0, (int) src.size().height),
+          new Point((int) src.size().width, (int) src.size().height));
+    }
+
 
     Mat warpMat = Imgproc.getPerspectiveTransform(startMat, endMat);
     Imgproc.warpPerspective(src, doc, warpMat, doc.size());
@@ -119,7 +133,6 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
     bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream);
     byte[] byteArray = byteArrayOutputStream.toByteArray();
 
-    WritableMap map = Arguments.createMap();
     map.putString("image", Base64.encodeToString(byteArray, Base64.DEFAULT));
     callback.invoke(null, map);
 
