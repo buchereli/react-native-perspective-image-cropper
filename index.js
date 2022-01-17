@@ -147,7 +147,7 @@ class CustomCrop extends Component {
   getCorners() {
     const { corners } = this.state;
 
-    const topSorted = [...corners].sort((a, b) => a.position.y._value > b.position.y._value)
+    const topSorted = [...corners].sort((a, b) => a.position.y._value - b.position.y._value)
     const topLeft = topSorted[0].position.x._value < topSorted[1].position.x._value ? topSorted[0] : topSorted[1];
     const topRight = topSorted[0].position.x._value >= topSorted[1].position.x._value ? topSorted[0] : topSorted[1];
     const bottomLeft = topSorted[2].position.x._value < topSorted[3].position.x._value ? topSorted[2] : topSorted[3];
@@ -175,10 +175,7 @@ class CustomCrop extends Component {
   getOverlayString() {
     const { topLeft, topRight, bottomLeft, bottomRight } = this.getCorners();
 
-    return `${topLeft.position.x._value},${topLeft.position.y._value} ${
-      topRight.position.x._value},${topRight.position.y._value} ${
-      bottomRight.position.x._value},${bottomRight.position.y._value} ${
-      bottomLeft.position.x._value},${bottomLeft.position.y._value}`;
+    return `${topLeft.position.x._value},${topLeft.position.y._value} ${topRight.position.x._value},${topRight.position.y._value} ${bottomRight.position.x._value},${bottomRight.position.y._value} ${bottomLeft.position.x._value},${bottomLeft.position.y._value}`;
   }
 
   offset(position) {
