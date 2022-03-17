@@ -14,7 +14,6 @@ public class ScannedDocument {
 
     public Mat original;
     public Mat processed;
-    public Quadrilateral quadrilateral;
     public Point[] previewPoints;
     public Size previewSize;
     public Size originalSize;
@@ -76,8 +75,5 @@ public class ScannedDocument {
             original.release();
         }
 
-        if (quadrilateral != null && quadrilateral.contour != null) {
-            quadrilateral.contour.release();
-        }
     }
 }

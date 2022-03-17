@@ -12,6 +12,7 @@ import android.graphics.drawable.shapes.PathShape;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 
 import com.facebook.react.bridge.WritableNativeMap;
@@ -122,7 +123,7 @@ private Point[] processTextBlock(Text result) {
 
             Mat doc;
                 if (pts[0] != null){
-                    Quadrilateral quad = new Quadrilateral(sortPoints(pts), srcSize);
+                    Quadrilateral quad = new Quadrilateral(sortPoints(pts));
                     Log.d(TAG, "quad " + quad);
                     sd.originalPoints = new Point[4];
 
