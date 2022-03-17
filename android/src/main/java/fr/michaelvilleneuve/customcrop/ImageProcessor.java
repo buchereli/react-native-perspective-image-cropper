@@ -12,7 +12,6 @@ import android.graphics.drawable.shapes.PathShape;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.os.Bundle;
 import android.preference.PreferenceManager;
 
 import com.facebook.react.bridge.WritableNativeMap;
@@ -24,8 +23,9 @@ import com.facebook.react.bridge.Callback;
 
 import fr.michaelvilleneuve.helpers.Quadrilateral;
 import fr.michaelvilleneuve.helpers.ScannedDocument;
-import fr.michaelvilleneuve.helpers.Utils;
 
+
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -132,7 +132,6 @@ private Point[] processTextBlock(Text result) {
               sd.originalPoints[2] = new Point(quad.points[1].x * ratio, quad.points[1].y * ratio); // BottomRight
               sd.originalPoints[3] = new Point(quad.points[2].x * ratio, quad.points[2].y * ratio); // BottomLeft
 
-              sd.quadrilateral = quad;
               sd.previewPoints = mPreviewPoints;
               sd.previewSize = mPreviewSize;
 
@@ -189,7 +188,7 @@ private Point[] processTextBlock(Text result) {
       Point[] foundPoints = sortPoints(points);
 
       if (insideArea(foundPoints, size)) {
-        return new Quadrilateral(c, foundPoints);
+        return new Quadrilateral( foundPoints);
       }
       // }
     }
