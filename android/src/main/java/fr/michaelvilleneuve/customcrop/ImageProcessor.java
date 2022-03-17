@@ -28,6 +28,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.RotatedRect;
 import org.opencv.core.Point;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -66,6 +67,27 @@ public class ImageProcessor {
 
   //   return doc.pointsAsHash();
   // }
+
+private Point[] processTextBlock(Text result) {
+        // [START mlkit_process_text_block]
+        ArrayList<Point> points = new ArrayList<>();
+        for (Text.TextBlock block : result.getTextBlocks()) {
+            android.graphics.Point[] blockCornerPoints = block.getCornerPoints();
+            for (android.graphics.Point p : blockCornerPoints){
+              points.add(new Point(p.x, p.y));
+            }
+        }
+        MatOfPoint2f temp = new MatOfPoint2f();
+        temp.fromList(points);
+        Point[] vertices = { null, null, null, null };
+        if (points.size() != 0){
+          RotatedRect rrect = Imgproc.minAreaRect(temp);
+          rrect.points(vertices);
+        }
+
+      return vertices;
+        // [END mlkit_process_text_block]
+    }
 
 
   public void processPicture(Mat img, Callback callback) {
@@ -116,7 +138,7 @@ public class ImageProcessor {
               img.copyTo(doc); 
                 }
 
-            ScannedDocument doc = sd.setProcessed(doc)
+            ScannedDocument doc = sd.setProcessed(doc);
             doc.release();
             img.release();
 
