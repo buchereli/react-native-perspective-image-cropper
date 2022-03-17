@@ -158,7 +158,7 @@ private Point[] processTextBlock(Text result) {
                           @Override
                           public void onFailure( Exception e) {
                             img.release();
-                            callback.invoke(null, new WritableNativeMap(););
+                            callback.invoke(null, new WritableNativeMap());
     
                               // Task failed with an exception
                               // ...
