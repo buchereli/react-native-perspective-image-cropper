@@ -13,6 +13,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.preference.PreferenceManager;
+
+import com.facebook.react.bridge.WritableNativeMap;
 import android.util.Log;
 
 
@@ -156,7 +158,7 @@ private Point[] processTextBlock(Text result) {
                           @Override
                           public void onFailure( Exception e) {
                             img.release();
-                            callback.invoke(null);
+                            callback.invoke(null, new WritableNativeMap(););
     
                               // Task failed with an exception
                               // ...
