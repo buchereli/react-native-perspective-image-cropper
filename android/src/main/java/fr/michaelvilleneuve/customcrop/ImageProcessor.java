@@ -93,6 +93,7 @@ private Point[] processTextBlock(Text result) {
   public void processPicture(Mat img, Callback callback) {
     // Mat img = Imgcodecs.imdecode(picture, Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
     // picture.release();
+    TextRecognizer recognizer = TextRecognition.getClient();
 
     Log.d(TAG, "processPicture - imported image " + img.size().width + "x" + img.size().height);
 
@@ -138,11 +139,11 @@ private Point[] processTextBlock(Text result) {
               img.copyTo(doc); 
                 }
 
-            ScannedDocument doc = sd.setProcessed(doc);
+            ScannedDocument sdoc = sd.setProcessed(doc);
             doc.release();
             img.release();
 
-            callback.invoke(null, doc.pointsAsHash());
+            callback.invoke(null, sdoc.pointsAsHash());
           }
       };
 
