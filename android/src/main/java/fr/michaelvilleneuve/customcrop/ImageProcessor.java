@@ -184,7 +184,6 @@ private Point[] processTextBlock(Text result) {
   }
 
   private Mat fourPointTransform(Mat src, Point[] pts) {
-    double ratio = src.size().height / 500;
 
     Point tl = pts[0];
     Point tr = pts[1];
@@ -218,3 +217,4 @@ private Point[] processTextBlock(Text result) {
 
     return doc;
   }
+}
