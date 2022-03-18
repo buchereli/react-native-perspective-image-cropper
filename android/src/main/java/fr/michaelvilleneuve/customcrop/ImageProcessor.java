@@ -95,6 +95,7 @@ private Point[] processTextBlock(Text result) {
     final InputImage image = InputImage.fromBitmap(bmp, 0);
     final Size srcSize = img.size();
     final Callback finalCallback = callback;
+    final Mat finalImg = img;
 
       OnSuccessListener<Text> onTextSuccess = new OnSuccessListener<Text>() {
           @Override
@@ -116,15 +117,15 @@ private Point[] processTextBlock(Text result) {
               sd.previewPoints = mPreviewPoints;
               sd.previewSize = mPreviewSize;
 
-              doc = fourPointTransform(img, quad.points);
+              doc = fourPointTransform(finalImg, quad.points);
                 } else {
-                   doc = new Mat(img.size(), CvType.CV_8UC4);
-              img.copyTo(doc); 
+                   doc = new Mat(finalImg.size(), CvType.CV_8UC4);
+              finalImg.copyTo(doc); 
                 }
 
             ScannedDocument sdoc = sd.setProcessed(doc);
             doc.release();
-            img.release();
+            finalImg.release();
 
             finalCallback.invoke(null, sdoc.pointsAsHash());
           }
@@ -138,7 +139,7 @@ private Point[] processTextBlock(Text result) {
                       new OnFailureListener() {
                           @Override
                           public void onFailure( Exception e) {
-                            img.release();
+                            finalImg.release();
                             finalCallback.invoke(null, new WritableNativeMap());
     
                               // Task failed with an exception
