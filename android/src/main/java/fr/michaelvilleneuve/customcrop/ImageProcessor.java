@@ -89,11 +89,12 @@ private Point[] processTextBlock(Text result) {
     Log.d(TAG, "processPicture - imported image " + img.size().width + "x" + img.size().height);
 
 
-    ScannedDocument sd = new ScannedDocument(img);
+    final ScannedDocument sd = new ScannedDocument(img);
     android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(img.cols(), img.rows(), android.graphics.Bitmap.Config.ARGB_8888);
     Utils.matToBitmap(img, bmp);
-    InputImage image = InputImage.fromBitmap(bmp, 0);
+    final InputImage image = InputImage.fromBitmap(bmp, 0);
     final Size srcSize = img.size();
+    final Callback finalCallback = callback;
 
       OnSuccessListener<Text> onTextSuccess = new OnSuccessListener<Text>() {
           @Override
@@ -125,7 +126,7 @@ private Point[] processTextBlock(Text result) {
             doc.release();
             img.release();
 
-            callback.invoke(null, sdoc.pointsAsHash());
+            finalCallback.invoke(null, sdoc.pointsAsHash());
           }
       };
 
@@ -138,7 +139,7 @@ private Point[] processTextBlock(Text result) {
                           @Override
                           public void onFailure( Exception e) {
                             img.release();
-                            callback.invoke(null, new WritableNativeMap());
+                            finalCallback.invoke(null, new WritableNativeMap());
     
                               // Task failed with an exception
                               // ...
