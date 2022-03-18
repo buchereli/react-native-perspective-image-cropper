@@ -169,7 +169,8 @@ public class RNCustomCropModule extends ReactContextBaseJavaModule {
 
       // WritableMap map = Arguments.createMap();
       // map.putString("crop", ip.processPicture(src));
-      callback.invoke(null, ip.processPicture(src));
+      ip.processPicture(src, callback);
+      // callback.invoke(null, ip.processPicture(src));
     }
   }
 
