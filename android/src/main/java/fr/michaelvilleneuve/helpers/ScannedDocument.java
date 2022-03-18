@@ -20,9 +20,6 @@ public class ScannedDocument {
 
     public Point[] originalPoints;
 
-    public int heightWithRatio;
-    public int widthWithRatio;
-
     public ScannedDocument(Mat original) {
         this.original = original;
     }
