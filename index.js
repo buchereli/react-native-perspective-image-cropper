@@ -133,11 +133,15 @@ class CustomCrop extends Component {
       (err, res) => {
         const { corners, zoom } = this.state;
         if (res) {
-          corners[2].position.setValue({ x: res.topLeft.x * zoom, y: res.topLeft.y * zoom });
-          corners[1].position.setValue({ x: res.topRight.x * zoom, y: res.topRight.y * zoom });
-          corners[0].position.setValue({ x: res.bottomLeft.x * zoom, y: res.bottomLeft.y * zoom });
-          corners[3].position.setValue({ x: res.bottomRight.x * zoom, y: res.bottomRight.y * zoom });
-          this.updateMidPoints();
+          if (res.topLeft) {
+            corners[2].position.setValue({ x: res.topLeft.x * zoom, y: res.topLeft.y * zoom });
+            corners[1].position.setValue({ x: res.topRight.x * zoom, y: res.topRight.y * zoom });
+            corners[0].position.setValue({ x: res.bottomLeft.x * zoom, y: res.bottomLeft.y * zoom });
+            corners[3].position.setValue({ x: res.bottomRight.x * zoom, y: res.bottomRight.y * zoom });
+            this.updateMidPoints();
+          } else if (res.rawPoints) {
+            // handle raw points
+          }
         }
         this.setState({ loading: false, overlayPositions: this.getOverlayString() });
       },

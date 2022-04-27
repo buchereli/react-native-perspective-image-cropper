@@ -1,6 +1,8 @@
 #import "CustomCropManager.h"
 #import <React/RCTLog.h>
 
+#import <GoogleMLKit/MLKit.h>
+
 @implementation CustomCropManager
 {
   CGFloat _imageDedectionConfidence;
@@ -52,15 +54,36 @@ RCT_EXPORT_METHOD(findDocument:(NSString *)imageUri callback:(RCTResponseSenderB
     CIImage *detectionImage = [CIImage imageWithContentsOfURL:fileURL];
     detectionImage = [detectionImage imageByApplyingOrientation:kCGImagePropertyOrientationUp];
 
-    self->_borderDetectLastRectangleFeature = [self biggestRectangleInRectangles:[[self highAccuracyRectangleDetector] featuresInImage:detectionImage] image:detectionImage];
-    self->_borderDetectLastRectangleBounds = detectionImage.extent;
-
-    if (self->_borderDetectLastRectangleFeature) {
-      NSDictionary *rectangleCoordinates = [self computeRectangle:self->_borderDetectLastRectangleFeature forImage: detectionImage];
-    callback(@[[NSNull null], rectangleCoordinates]);
-    } else {
-        callback(@[@{@"error": @"No rectangle found"}, [NSNull null]]);
+    UIImage *image = [UIImage imageWithCGImage:cgDetectionImage];
+          
+    if (!image) {
+        return;
     }
+    
+    MLKTextRecognizer *textRecognizer = [MLKTextRecognizer textRecognizer];
+    MLKVisionImage *handler = [[MLKVisionImage alloc] initWithImage:image];
+    
+    [textRecognizer processImage:handler completion:^(MLKText *_Nullable result, NSError *_Nullable error) {
+        @try {
+            if (error != nil || result == nil) {
+                NSString *errorString = error ? error.localizedDescription : detectionNoResultsMessage;
+                @throw [NSException exceptionWithName:@"failure" reason:errorString userInfo:nil];
+                return;
+            }
+        
+            NSMutableArray *output = prepareOutput2(result);
+            callback(@[[NSNull null], output]);
+        }
+        @catch (NSException *e) {
+            NSString *errorString = e ? e.reason : detectionNoResultsMessage;
+            NSLog(errorString);
+            callback(@[@{@"error": @"No rectangle found"}, [NSNull null]]);
+        }
+        @finally {
+          CGImageRelease(cgDetectionImage);
+            self->_detectFromPreview = YES;
+        }
+    }];
 }
 
 

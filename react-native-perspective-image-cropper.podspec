@@ -14,4 +14,5 @@ Pod::Spec.new do |s|
   s.source_files  = "ios/**/*.{h,m,mm}"
   s.requires_arc  = true
   s.dependency 'React'
+  s.dependency 'GoogleMLKit/TextRecognition','2.2.0'
 end
