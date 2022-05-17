@@ -337,7 +337,7 @@ class CustomCrop extends Component {
     const { imageHeight, imageWidth } = this.state;
     const widthZoom = layout.width / imageWidth;
     const heightZoom = layout.height / imageHeight;
-    const zoom = this.props.cropDocumentOnLoad? 1 : widthZoom < heightZoom ? widthZoom : heightZoom;
+    const zoom = widthZoom < heightZoom ? widthZoom : heightZoom;
     const offsetHorizontal = Math.max(Math.round((layout.width - imageWidth * zoom) / 2), 0);
     const offsetVerticle = Math.max(Math.round((layout.height - imageHeight * zoom) / 2), 0);
 
