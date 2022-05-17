@@ -92,6 +92,69 @@ export const findMinBoundingRect = points => {
   return minRect;
 }
 
+function findCornersFromFoundDoc(res, corners, zoom) {
+    if (res.topLeft) {
+      corners[2].position.setValue({ x: res.topLeft.x * zoom, y: res.topLeft.y * zoom });
+      corners[1].position.setValue({ x: res.topRight.x * zoom, y: res.topRight.y * zoom });
+      corners[0].position.setValue({ x: res.bottomLeft.x * zoom, y: res.bottomLeft.y * zoom });
+      corners[3].position.setValue({ x: res.bottomRight.x * zoom, y: res.bottomRight.y * zoom });
+    } else {
+      const points = [];
+      res.forEach((box) => {
+        points.push(...box.cornerPoints.map(({x,y}) => [x,y]))
+      });
+      const boundingBox = findMinBoundingRect(points);
+      corners[2].position.setValue({ x: boundingBox[0][0]*zoom, y: boundingBox[0][1]*zoom });
+      corners[1].position.setValue({ x: boundingBox[1][0]*zoom, y: boundingBox[1][1]*zoom });
+      corners[0].position.setValue({ x: boundingBox[2][0]*zoom, y: boundingBox[2][1]*zoom });
+      corners[3].position.setValue({ x: boundingBox[3][0]*zoom, y: boundingBox[3][1]*zoom });
+    }
+}
+
+function getCornersHelper(corners) {
+  const topSorted = [...corners].sort((a, b) => a.position.y._value - b.position.y._value)
+  const topLeft = topSorted[0].position.x._value < topSorted[1].position.x._value ? topSorted[0] : topSorted[1];
+  const topRight = topSorted[0].position.x._value >= topSorted[1].position.x._value ? topSorted[0] : topSorted[1];
+  const bottomLeft = topSorted[2].position.x._value < topSorted[3].position.x._value ? topSorted[2] : topSorted[3];
+  const bottomRight = topSorted[2].position.x._value >= topSorted[3].position.x._value ? topSorted[2] : topSorted[3];
+
+  return { topLeft, topRight, bottomLeft, bottomRight };
+  }
+
+export function findAndCropImage(coordinates, imageURI, callback) {
+  NativeModules.CustomCropManager.findDocument(
+    imageURI,
+    (err, res) => {
+      if (res) {
+      const corners = [];
+      for (let i = 0; i < 4; i++) {
+        corners[i] = { position: new Animated.ValueXY(), delta: { x: 0, y: 0 } }
+      }
+      findCornersFromFoundDoc(res, corners, 1);
+      const {bottomLeft, bottomRight, topLeft, topRight} = getCornersHelper(corners);
+      const cornerCoords = {
+        bottomLeft:viewCoordinatesToImageCoordinatesHelper(bottomLeft, 1), 
+        bottomRight:viewCoordinatesToImageCoordinatesHelper(bottomRight, 1), 
+        topLeft:viewCoordinatesToImageCoordinatesHelper(topLeft, 1), 
+        topRight:viewCoordinatesToImageCoordinatesHelper(topRight, 1)
+      };
+      NativeModules.CustomCropManager.crop(
+        cornerCoords.bottomLeft.x?cornerCoords:coordinates,
+        imageURI,
+        callback,
+      );
+    } else {
+      console.error(err)
+    }
+  });
+}
+
+function viewCoordinatesToImageCoordinatesHelper(corner, zoom) {
+  return {
+    x: corner.position.x._value * (1 / zoom),
+    y: corner.position.y._value * (1 / zoom),
+  }
+}
 
 
 const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
@@ -200,7 +263,6 @@ class CustomCrop extends Component {
         height: this.state.imageHeight,
         width: this.state.imageWidth,
       };
-
       NativeModules.CustomCropManager.crop(
         coordinates,
         this.state.image,
@@ -215,28 +277,10 @@ class CustomCrop extends Component {
     NativeModules.CustomCropManager.findDocument(
       this.state.image,
       (err, res) => {
-        const { corners, zoom } = this.state;
+        let { corners, zoom } = this.state;
         if (res) {
-          if (res.topLeft) {
-            corners[2].position.setValue({ x: res.topLeft.x * zoom, y: res.topLeft.y * zoom });
-            corners[1].position.setValue({ x: res.topRight.x * zoom, y: res.topRight.y * zoom });
-            corners[0].position.setValue({ x: res.bottomLeft.x * zoom, y: res.bottomLeft.y * zoom });
-            corners[3].position.setValue({ x: res.bottomRight.x * zoom, y: res.bottomRight.y * zoom });
-            this.updateMidPoints();
-          } else {
-            
-            const points = [];
-            res.forEach((box) => {
-              points.push(...box.cornerPoints.map(({x,y}) => [x,y]))
-            });
-            const boundingBox = findMinBoundingRect(points);
-            corners[2].position.setValue({ x: boundingBox[0][0]*zoom, y: boundingBox[0][1]*zoom });
-            corners[1].position.setValue({ x: boundingBox[1][0]*zoom, y: boundingBox[1][1]*zoom });
-            corners[0].position.setValue({ x: boundingBox[2][0]*zoom, y: boundingBox[2][1]*zoom });
-            corners[3].position.setValue({ x: boundingBox[3][0]*zoom, y: boundingBox[3][1]*zoom });
-            this.updateMidPoints();
-            // handle raw points
-          }
+          findCornersFromFoundDoc(res, corners, zoom)
+          this.updateMidPoints();
         }
         this.setState({ loading: false, overlayPositions: this.getOverlayString() });
       },
@@ -245,14 +289,7 @@ class CustomCrop extends Component {
   
   getCorners() {
     const { corners } = this.state;
-
-    const topSorted = [...corners].sort((a, b) => a.position.y._value - b.position.y._value)
-    const topLeft = topSorted[0].position.x._value < topSorted[1].position.x._value ? topSorted[0] : topSorted[1];
-    const topRight = topSorted[0].position.x._value >= topSorted[1].position.x._value ? topSorted[0] : topSorted[1];
-    const bottomLeft = topSorted[2].position.x._value < topSorted[3].position.x._value ? topSorted[2] : topSorted[3];
-    const bottomRight = topSorted[2].position.x._value >= topSorted[3].position.x._value ? topSorted[2] : topSorted[3];
-
-    return { topLeft, topRight, bottomLeft, bottomRight };
+    return getCornersHelper(corners);
   }
 
   setMidPoint(point, start, end) {
@@ -282,12 +319,9 @@ class CustomCrop extends Component {
   }
 
   viewCoordinatesToImageCoordinates(corner) {
-    const { zoom } = this.state;
+    let { zoom } = this.state;
 
-    return {
-      x: corner.position.x._value * (1 / zoom),
-      y: corner.position.y._value * (1 / zoom),
-    };
+    return viewCoordinatesToImageCoordinatesHelper(corner, zoom);
   }
 
   onLayout = (event) => {
@@ -301,10 +335,9 @@ class CustomCrop extends Component {
     }
 
     const { imageHeight, imageWidth } = this.state;
-
     const widthZoom = layout.width / imageWidth;
     const heightZoom = layout.height / imageHeight;
-    const zoom = widthZoom < heightZoom ? widthZoom : heightZoom;
+    const zoom = this.props.cropDocumentOnLoad? 1 : widthZoom < heightZoom ? widthZoom : heightZoom;
     const offsetHorizontal = Math.max(Math.round((layout.width - imageWidth * zoom) / 2), 0);
     const offsetVerticle = Math.max(Math.round((layout.height - imageHeight * zoom) / 2), 0);
 
@@ -319,7 +352,7 @@ class CustomCrop extends Component {
     corners[3].position.setValue({ x: imageLayoutWidth - padding, y: imageLayoutHeight - padding });
 
     this.updateMidPoints();
-
+    
     this.props.findDocumentOnLoad && this.findDocument();
 
     this.setState({
