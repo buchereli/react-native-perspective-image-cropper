@@ -103,6 +103,9 @@ function findCornersFromFoundDoc(res, corners, zoom) {
       res.forEach((box) => {
         points.push(...box.cornerPoints.map(({x,y}) => [x,y]))
       });
+      if (!points.length){
+        throw new Error('No points detected')
+      }
       const boundingBox = findMinBoundingRect(points);
       corners[2].position.setValue({ x: boundingBox[0][0]*zoom, y: boundingBox[0][1]*zoom });
       corners[1].position.setValue({ x: boundingBox[1][0]*zoom, y: boundingBox[1][1]*zoom });
@@ -130,7 +133,11 @@ export function findAndCropImage(coordinates, imageURI, callback) {
       for (let i = 0; i < 4; i++) {
         corners[i] = { position: new Animated.ValueXY(), delta: { x: 0, y: 0 } }
       }
-      findCornersFromFoundDoc(res, corners, 1);
+      try {
+        findCornersFromFoundDoc(res, corners, 1);
+      } catch (e) {
+        callback(e, null);
+      }
       const {bottomLeft, bottomRight, topLeft, topRight} = getCornersHelper(corners);
       const cornerCoords = {
         bottomLeft:viewCoordinatesToImageCoordinatesHelper(bottomLeft, 1), 
@@ -279,7 +286,11 @@ class CustomCrop extends Component {
       (err, res) => {
         let { corners, zoom } = this.state;
         if (res) {
-          findCornersFromFoundDoc(res, corners, zoom)
+          try{
+            findCornersFromFoundDoc(res, corners, zoom)
+          } catch (_) {
+            // Noop
+          }
           this.updateMidPoints();
         }
         this.setState({ loading: false, overlayPositions: this.getOverlayString() });
