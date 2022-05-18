@@ -59,6 +59,7 @@ RCT_EXPORT_METHOD(findDocument:(NSString *)imagePath callback:(RCTResponseSender
 
     if (!image) {
         NSLog(@"No image found %@", imagePath);
+        callback(@[@{@"error": @"No rectangle found"}, [NSNull null]]);
         return;
     }
     

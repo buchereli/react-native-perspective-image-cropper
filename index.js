@@ -144,7 +144,7 @@ export function findAndCropImage(coordinates, imageURI, callback) {
         callback,
       );
     } else {
-      console.error(err)
+      callback(err, null);
     }
   });
 }
