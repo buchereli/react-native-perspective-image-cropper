@@ -93,25 +93,24 @@ export const findMinBoundingRect = points => {
 }
 
 function findCornersFromFoundDoc(res, corners, zoom) {
-    if (res.topLeft) {
-      corners[2].position.setValue({ x: res.topLeft.x * zoom, y: res.topLeft.y * zoom });
-      corners[1].position.setValue({ x: res.topRight.x * zoom, y: res.topRight.y * zoom });
-      corners[0].position.setValue({ x: res.bottomLeft.x * zoom, y: res.bottomLeft.y * zoom });
-      corners[3].position.setValue({ x: res.bottomRight.x * zoom, y: res.bottomRight.y * zoom });
-    } else {
-      const points = [];
-      res.forEach((box) => {
-        points.push(...box.cornerPoints.map(({x,y}) => [x,y]))
-      });
-      if (!points.length){
-        throw new Error('No points detected')
-      }
-      const boundingBox = findMinBoundingRect(points);
-      corners[2].position.setValue({ x: boundingBox[0][0]*zoom, y: boundingBox[0][1]*zoom });
-      corners[1].position.setValue({ x: boundingBox[1][0]*zoom, y: boundingBox[1][1]*zoom });
-      corners[0].position.setValue({ x: boundingBox[2][0]*zoom, y: boundingBox[2][1]*zoom });
-      corners[3].position.setValue({ x: boundingBox[3][0]*zoom, y: boundingBox[3][1]*zoom });
-    }
+  if (res.topLeft) {
+    corners[2].position.setValue({ x: res.topLeft.x * zoom, y: res.topLeft.y * zoom });
+    corners[1].position.setValue({ x: res.topRight.x * zoom, y: res.topRight.y * zoom });
+    corners[0].position.setValue({ x: res.bottomLeft.x * zoom, y: res.bottomLeft.y * zoom });
+    corners[3].position.setValue({ x: res.bottomRight.x * zoom, y: res.bottomRight.y * zoom });
+  } else if (res.length) {
+    const points = [];
+    res.forEach((box) => {
+      points.push(...box.cornerPoints.map(({x,y}) => [x,y]))
+    });
+    const boundingBox = findMinBoundingRect(points);
+    corners[2].position.setValue({ x: boundingBox[0][0]*zoom, y: boundingBox[0][1]*zoom });
+    corners[1].position.setValue({ x: boundingBox[1][0]*zoom, y: boundingBox[1][1]*zoom });
+    corners[0].position.setValue({ x: boundingBox[2][0]*zoom, y: boundingBox[2][1]*zoom });
+    corners[3].position.setValue({ x: boundingBox[3][0]*zoom, y: boundingBox[3][1]*zoom });
+  } else {
+    throw new Error('Nothing found')
+  }
 }
 
 function getCornersHelper(corners) {
@@ -285,9 +284,9 @@ class CustomCrop extends Component {
       this.state.image,
       (err, res) => {
         let { corners, zoom } = this.state;
-        if (res) {
+        if (res && (res.topLeft ?? res.length)) {
           try{
-            findCornersFromFoundDoc(res, corners, zoom)
+            findCornersFromFoundDoc(res, corners, zoom);
           } catch (_) {
             // Noop
           }
