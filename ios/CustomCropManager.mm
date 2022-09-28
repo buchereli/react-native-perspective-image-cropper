@@ -52,11 +52,14 @@ RCT_EXPORT_METHOD(crop:(NSDictionary *)points imageUri:(NSString *)imageUri call
 
 RCT_EXPORT_METHOD(findDocument:(NSString *)imagePath callback:(RCTResponseSenderBlock)callback)
 {
-    NSData *imageData = [NSData dataWithContentsOfFile:imagePath];
+    NSURL *imageURL = [NSURL URLWithString:imagePath];
+    [imageURL startAccessingSecurityScopedResource];
+    NSData *imageData = [NSData dataWithContentsOfURL:imageURL];
     UIImage *image = [UIImage imageWithData:imageData];
 
     if (!image) {
         NSLog(@"No image found %@", imagePath);
+        callback(@[@{@"error": @"No rectangle found"}, [NSNull null]]);
         return;
     }
     
