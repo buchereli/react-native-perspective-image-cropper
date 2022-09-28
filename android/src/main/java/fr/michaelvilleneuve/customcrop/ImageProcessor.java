@@ -54,6 +54,7 @@ import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 public class ImageProcessor {
 
@@ -84,7 +85,7 @@ private Point[] processTextBlock(Text result) {
 
 
   public void processPicture(Mat img, Callback callback) {
-    TextRecognizer recognizer = TextRecognition.getClient();
+    TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
     Log.d(TAG, "processPicture - imported image " + img.size().width + "x" + img.size().height);
 
